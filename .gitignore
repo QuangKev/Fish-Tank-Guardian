@@ -1,0 +1,6 @@
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Credentials - never commit
+secrets.h

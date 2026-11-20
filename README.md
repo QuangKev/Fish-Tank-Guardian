@@ -7,12 +7,13 @@ A fish feeder that can be triggered remotely and reports back its status. Team o
 ## Architecture
 ```
 Adafruit IO (MQTT) ──► ESP32 gateway ◄── UART 9600 8N1 ──► S32K144 (MaaZEDU board)
-Serial Monitor ──────►      │                                   ├─ feeder motor
-                            └──► Discord webhook (status)       ├─ TDS sensor
+Serial Monitor ──────►      │                                   ├─ stepper motor (ULN2003) – feeder
+                            └──► Discord webhook (status)       ├─ TDS sensor (ADC)
+                                                                ├─ LCD 12864 (SPI) + buzzer
                                                                 └─ physical feed button
 ```
 
-The ESP32 gateway receives commands from an Adafruit IO feed (or the Serial Monitor), forwards them to the S32K144 over UART, and posts results to a Discord channel.
+The ESP32 gateway receives commands from an Adafruit IO feed (or the Serial Monitor), forwards them to the S32K144 over UART, and posts results to a Discord channel. The S32K144 drives the stepper-motor feeder, reads the TDS (water quality) sensor through its ADC, shows status on a 12864 LCD, beeps a buzzer, and also supports a physical feed button.
 
 ## UART protocol (ESP32 ⇄ S32K144, 9600 baud)
 | Direction | Message | Meaning |
@@ -37,8 +38,15 @@ Wiring: ESP32 GPIO17 (TX2) → S32K PTD6 (LPUART2_RX), GPIO16 (RX2) ← PTD7 (LP
 
 Serial Monitor test commands: `feed`, `tds`, `ping`.
 
-## Scope
-This repository contains the **ESP32 gateway firmware** only. The S32K144 firmware is not included.
+## Repository layout
+| Path | Content |
+|---|---|
+| `firmware/esp32_gateway/` | ESP32 gateway (Arduino): Wi-Fi, Adafruit IO MQTT, Discord webhook, UART state machine |
+| `firmware/s32k144/main.c` | S32K144 application (S32 Design Studio / S32 SDK): UART command handler, stepper feeder, TDS reading, LCD, button |
+
+S32K144 pins: UART on PTD6 (LPUART2_RX) / PTD7 (LPUART2_TX); stepper IN1–IN4 on PTD14/13/12/11; buzzer PTD5; button PTD8 (internal pull-up).
+
+> `main.c` is the application source only. The S32 Design Studio project files (SDK/peripheral configuration, `sdk_project_config.h`) and the `lcd_12864_library` are not included, so it needs to be dropped into an S32DS project configured for this board.
 
 ## Photos
 ![Electronics](images/feeder-electronics.jpg)
